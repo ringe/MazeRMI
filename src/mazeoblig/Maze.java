@@ -20,9 +20,13 @@ import simulator.*;
  */
 import java.rmi.RemoteException;
 import java.rmi.NotBoundException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.List;
+
 /**
- * Tegner opp maze i en applet, basert på definisjon som man finner på RMIServer
- * RMIServer på sin side  henter størrelsen fra definisjonen i Maze
+ * Tegner opp maze i en applet, basert pï¿½ definisjon som man finner pï¿½ RMIServer
+ * RMIServer pï¿½ sin side  henter stï¿½rrelsen fra definisjonen i Maze
  * @author asd
  *
  */
@@ -30,7 +34,7 @@ public class Maze extends Applet {
 
 	private BoxMazeInterface bm;
 	private Box[][] maze;
-	public static int DIM = 10;
+	public static int DIM = 20;
 	private int dim = DIM;
 
 	static int xp;
@@ -39,7 +43,8 @@ public class Maze extends Applet {
 
 	private String server_hostname;
 	private int server_portnumber;
-
+	private PositionInMaze myPos = null;
+	public PosPos[] theirPos;
 
 	/**
 	 * Henter labyrinten fra RMIServer
@@ -48,7 +53,7 @@ public class Maze extends Applet {
 		int size = dim;
 		/*
 		 ** Kobler opp mot RMIServer, under forutsetning av at disse
-		 ** kjører på samme maskin. Hvis ikke må oppkoblingen
+		 ** kjï¿½rer pï¿½ samme maskin. Hvis ikke mï¿½ oppkoblingen
 		 ** skrives om slik at dette passer med virkeligheten.
 		 */
 		if (server_hostname == null)
@@ -57,8 +62,7 @@ public class Maze extends Applet {
 			server_portnumber = RMIServer.getRMIPort();
 		try {
 			java.rmi.registry.Registry r = java.rmi.registry.LocateRegistry.
-			getRegistry(server_hostname,
-					server_portnumber);
+			getRegistry(server_hostname, server_portnumber);
 
 			/*
 			 ** Henter inn referansen til Labyrinten (ROR)
@@ -66,39 +70,116 @@ public class Maze extends Applet {
 			bm = (BoxMazeInterface) r.lookup(RMIServer.MazeName);
 			maze = bm.getMaze();
 			
-/*
-** Finner løsningene ut av maze - se forøvrig kildekode for VirtualMaze for ytterligere
-** kommentarer. Løsningen er implementert med backtracking-algoritme
-*
-			VirtualUser vu = new VirtualUser(maze);
-			PositionInMaze [] pos;
-/*			pos = vu.getFirstIterationLoop();
-
-			for (int i = 0; i < pos.length; i++)
-				System.out.println(pos[i]);
-*
-			pos = vu.getIterationLoop();
-			for (int i = 0; i < pos.length; i++)
-				System.out.println(pos[i]);
-/**/			
+			/*
+			** Finner lï¿½sningene ut av maze - se forï¿½vrig kildekode for VirtualMaze for ytterligere
+			** kommentarer. Lï¿½sningen er implementert med backtracking-algoritme
+			*/
+			
+			
+//			Painter pa = new Painter();
+//			pa.setDaemon(true);
+//			pa.start();
+//			
+//			Worker w = new Worker();
+//			w.setDaemon(true);
+//			w.start();
+			
+			LotsOfPlayers pl = new LotsOfPlayers(4);
+			pl.setDaemon(true);
+			pl.start();
+			
+			while(myPos == null)
+				Thread.sleep(100);
 		}
 		catch (RemoteException e) {
+			e.printStackTrace();
 			System.err.println("Remote Exception: " + e.getMessage());
 			System.exit(0);
 		}
 		catch (NotBoundException f) {
 			/*
-			 ** En exception her er en indikasjon på at man ved oppslag (lookup())
-			 ** ikke finner det objektet som man søker.
-			 ** Årsaken til at dette skjer kan være mange, men vær oppmerksom på
+			 ** En exception her er en indikasjon pï¿½ at man ved oppslag (lookup())
+			 ** ikke finner det objektet som man sï¿½ker.
+			 ** ï¿½rsaken til at dette skjer kan vï¿½re mange, men vï¿½r oppmerksom pï¿½
 			 ** at hvis hostname ikke er OK (RMIServer gir da feilmelding under
-			 ** oppstart) kan være en årsak.
+			 ** oppstart) kan vï¿½re en ï¿½rsak.
 			 */
 			System.err.println("Not Bound Exception: " + f.getMessage());
 			System.exit(0);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	// Thread to start a number of players
+	class LotsOfPlayers extends Thread {
+		private int n;
+		LotsOfPlayers(int c) { n = c; }
+		public void run() {
+			for ( int i = n; i != 0; i--) {
+				Worker b = new Worker();
+				b.setDaemon(true);
+				b.start();
+				try {
+					sleep(750);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
+	private class Worker extends Thread {
+		public void run(){
+			try {
+				// Create a new user for this maze.
+				VirtualUser vu = new VirtualUser(maze);
+				PositionInMaze pos = vu.getIterationLoop()[0];
+				int i = bm.join((PosPos)pos);
+				vu.setId(i);
+				
+				// The first user is Self
+				if (i == 1) myPos = pos;
+				
+				// Move until all moves done.
+				while (true) {
+					if (vu.moves.hasNext()) {
+						PositionInMaze p = vu.moves.next();
+					
+						theirPos = bm.announce(vu.getId(), p);
+						repaint();
+					
+						// The first user is Self
+						if (i == 1) myPos = p;
+					}
+					else {
+						vu.turn();
+					}
+					sleep(200);
+				}
+			}
+			catch (InterruptedException ex) {
+				ex.printStackTrace();
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
+	    }
+	}
+	
+//	private class Painter extends Thread {
+//		public void run() {
+//			try {
+//				while(true) {
+//					Thread.sleep(200);
+//			    	repaint();
+//				}
+//			} catch (InterruptedException ie) {
+//				ie.printStackTrace();
+//			}
+//		}
+//	}
+	
 	//Get a parameter value
 	public String getParameter(String key, String def) {
 		return getParameter(key) != null ? getParameter(key) : def;
@@ -122,7 +203,7 @@ public class Maze extends Applet {
 	public void paint (Graphics g) {
 		int x, y;
 
-		// Tegner baser på box-definisjonene ....
+		// Tegner baser pï¿½ box-definisjonene ....
 
 		for (x = 1; x < (dim - 1); ++x)
 			for (y = 1; y < (dim - 1); ++y) {
@@ -135,6 +216,37 @@ public class Maze extends Applet {
 				if (maze[x][y].getRight() == null)
 					g.drawLine(x * 10 + 10, y * 10, x * 10 + 10, y * 10 + 10);
 			}
+		
+		if (theirPos != null)
+			for (int i = 0; i < theirPos.length; i++) {
+				PosPos who = theirPos[i];
+				if (myPos.equals(who))
+					drawSelf(g);
+				else
+					drawThem(g, who);
+			}
+		else
+			drawSelf(g);
+	}
+	
+	private void drawSelf(Graphics g) {
+		try {
+			g.setColor(Color.yellow);
+			g.fillOval((myPos.getXpos() * 10) + 2, (myPos.getYpos() * 10) + 2, 7, 7);
+			g.setColor(Color.black);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void drawThem(Graphics g, PosPos who) {
+		try {
+			g.setColor(Color.red);
+			g.fillOval((who.getXpos() * 10) + 2, (who.getYpos() * 10) + 2, 7, 7);
+			g.setColor(Color.black);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 	}
 }
 

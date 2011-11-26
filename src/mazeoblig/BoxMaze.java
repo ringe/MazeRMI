@@ -1,7 +1,7 @@
 package mazeoblig;
 
 /************************************************************************
- * Denne koden skal ikke røres
+ * Denne koden skal ikke rï¿½res
  ***********************************************************************/
 
 /**
@@ -19,30 +19,46 @@ package mazeoblig;
  */
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.RemoteException;
+import java.util.Collections;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import simulator.PosPos;
 
 public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
 {
+	private static final long serialVersionUID = -8728714919003472639L;
+	private Hashtable<Integer, PosPos> users;
+	private int nextId = 1;
     private int maze[][];
     protected Box boxmaze[][];
     private int size = 50;
+    
+    
     /**
-     * Konstruktør
-     * Randomiserer opp en tilfeldig labyrint på 20 x 20 bokser hvor veggene
-     * i mellom boksen er "fjernet slik at man får en labyint.
+     * Konstruktï¿½r
+     * Randomiserer opp en tilfeldig labyrint pï¿½ 20 x 20 bokser hvor veggene
+     * i mellom boksen er "fjernet slik at man fï¿½r en labyint.
      */
     public BoxMaze() throws RemoteException {
         init(size);
+        initUsers();
     }
 
     public BoxMaze(int newSize) throws RemoteException {
         size = newSize;
         init(size);
+        initUsers();
     }
+    
     /**
      * Genererer labyrinten. Koden er i all vesentlig grad hentet fra en enkel
-     * algoritme som er publisert på http://en.wikipedia.org/wiki/Image:Maze.png
+     * algoritme som er publisert pï¿½ http://en.wikipedia.org/wiki/Image:Maze.png
      *
-     * Algoritmen er skrevet om til å håndtere boksene
+     * Algoritmen er skrevet om til ï¿½ hï¿½ndtere boksene
      */
     private void init (int size) {
         int x, y, n, d;
@@ -158,6 +174,23 @@ public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
     public Box [][] getMaze() throws RemoteException {
         return boxmaze;
     }
+    
+    /**
+     * Initialize the users table.
+     */
+    private void initUsers() {
+    	users = new Hashtable<Integer,PosPos>();
+    }
+	
+	/**
+	 * Join the Maze and get a user id.
+	 */
+	@Override
+	public int join(PosPos p) throws RemoteException {
+		int id = nextId++;
+		users.put(new Integer(id), p);
+		return id;
+	}
 
 
 }
