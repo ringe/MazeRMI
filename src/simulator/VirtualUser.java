@@ -4,12 +4,15 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 
 import mazeoblig.Box;
 import mazeoblig.BoxMazeInterface;
 import mazeoblig.Maze;
 import mazeoblig.RMIServer;
 
+import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -31,8 +34,9 @@ import java.util.Arrays;
  * @author asd
  *
  */
-public class VirtualUser {
+public class VirtualUser extends UnicastRemoteObject implements User {
 
+	private static final long serialVersionUID = -528103055042584233L;
 	private Box[][] maze;
 	private int dim;
 
@@ -46,21 +50,40 @@ public class VirtualUser {
 	private Stack <PositionInMaze> myWay = new Stack<PositionInMaze>();
 	private PositionInMaze [] FirstIteration; 
 	private PositionInMaze [] NextIteration;
-	public Iterator<PositionInMaze> moves; 
+	
+	public Iterator<PositionInMaze> moves;
+	private BoxMazeInterface boxmaze;
+	private PositionInMaze pos;
+	private Hashtable<Integer,PosPos> positions;
+	private Hashtable<Integer,User> users;
 
 	/**
 	 * Konstrukt�r
-	 * @param maze
+	 * @param bm
 	 * @throws RemoteException 
 	 */
-	public VirtualUser(Box[][] maze) throws RemoteException {
-		this.maze = maze;
+	public VirtualUser(BoxMazeInterface bm) throws RemoteException {
+		boxmaze = bm;
+		users = new Hashtable<Integer,User>();
+		positions = new Hashtable<Integer,PosPos>();
+		id = boxmaze.join(this);
+		maze = boxmaze.getMaze();
 		dim = maze[0].length;
 		init();
 	}
 	
-	public int getId() { return id; }
-	public void setId(int i) { id = i; } 
+	@Override public int getId() { return id; }
+	@Override public PosPos getPos() { return pos; }
+	
+	@Override public Object[] getOthers() throws RemoteException {
+		Object[] o = users.values().toArray();
+		ArrayList<PosPos> pos = new ArrayList<PosPos>();
+		for (int i = 0; i < o.length; i++) {
+			PosPos p = ((User) o[i]).getPos();
+			if (p!=null) pos.add(p);
+		}
+		return pos.toArray();
+	}
 	
 	/**
 	 * Initsierer en tilfeldig posisjon i labyrint
@@ -83,6 +106,21 @@ public class VirtualUser {
 		turn();
 	}
 	
+	/**
+	 * Perform the next move
+	 * @throws RemoteException
+	 */
+	public void move() throws RemoteException {
+		if (moves.hasNext()) {
+			pos = moves.next();
+			announce();
+		}
+		else turn();
+	}
+	
+	/**
+	 * Makes the VirtualUser change his moves.
+	 */
 	public void turn() {
 		moves = new Iterator<PositionInMaze>() {
 			private int position = 0;
@@ -110,6 +148,54 @@ public class VirtualUser {
 			}
 		};
 		trackback = !trackback;
+	}
+	
+	/**
+	 * Add the given User to our list of known users.
+	 */
+	@Override
+	public void join(Integer i, User u) throws RemoteException {
+		users.put(i, u);
+		System.out.println(id + users.keys().toString());
+	}
+	
+	/**
+	 * Remove the given User from our list of known users.
+	 */
+	@Override
+	public void drop(Integer i) throws RemoteException {
+		users.remove(i);
+	}
+	
+	/**
+     * Announce leaving the maze to all known users.
+     */
+	@Override
+	public void leave() throws RemoteException {
+		Iterator<User> it = users.values().iterator();
+		while (it.hasNext())
+			it.next().drop(id);
+		boxmaze.drop(id);
+	}
+	
+    /**
+     * Announce the updated position to all known users
+     */
+	@Override
+	public void announce() throws RemoteException {
+		Object[] all = users.values().toArray();
+		for (int i = 0; i < all.length; i++ ) {
+			User u = (User) all[i];
+			u.tellPos(id, pos);
+		}
+	}
+	
+	/**
+	 * Receive positionsfrom other users
+	 */
+	@Override
+	public void tellPos(int i, PosPos p) throws RemoteException {
+		positions.put(i, p);
 	}
 	
 	/**

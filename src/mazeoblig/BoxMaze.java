@@ -18,8 +18,11 @@ package mazeoblig;
  * @version 1.0
  */
 import java.rmi.server.UnicastRemoteObject;
+import java.rmi.ConnectException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -27,11 +30,12 @@ import java.util.Map;
 import java.util.Set;
 
 import simulator.PosPos;
+import simulator.User;
 
 public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
 {
 	private static final long serialVersionUID = -8728714919003472639L;
-	private Hashtable<Integer, PosPos> users;
+	private Hashtable<Integer,User> users;
 	private int nextId = 1;
     private int maze[][];
     protected Box boxmaze[][];
@@ -45,13 +49,13 @@ public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
      */
     public BoxMaze() throws RemoteException {
         init(size);
-        initUsers();
+        users = new Hashtable<Integer,User>();
     }
 
     public BoxMaze(int newSize) throws RemoteException {
         size = newSize;
         init(size);
-        initUsers();
+        users = new Hashtable<Integer,User>();
     }
     
     /**
@@ -174,23 +178,33 @@ public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
     public Box [][] getMaze() throws RemoteException {
         return boxmaze;
     }
-    
-    /**
-     * Initialize the users table.
-     */
-    private void initUsers() {
-    	users = new Hashtable<Integer,PosPos>();
-    }
 	
 	/**
-	 * Join the Maze and get a user id.
+	 * Join the Maze
 	 */
 	@Override
-	public int join(PosPos p) throws RemoteException {
-		int id = nextId++;
-		users.put(new Integer(id), p);
+	public int join(User u) throws RemoteException {
+		ArrayList<Integer> rem = new ArrayList<Integer>();
+		Enumeration<Integer> it = users.keys();
+		Integer id = nextId;
+		while (it.hasMoreElements()) {
+			int k = it.nextElement();
+			try {
+				User us = users.get(k);
+				us.join(k, u);
+			} catch (ConnectException ce) {
+				rem.add(k);
+			}
+		}
+		for (int i=0; i<rem.size(); i++)
+			users.remove(rem.get(i));
+		users.put(id, u);
+		nextId++;
 		return id;
 	}
 
-
+	@Override
+	public void drop(Integer i) throws RemoteException {
+		users.remove(i);
+	}
 }
