@@ -43,8 +43,7 @@ public class Maze extends Applet {
 
 	private String server_hostname;
 	private int server_portnumber;
-	private PositionInMaze myPos = null;
-	public PosPos[] theirPos;
+	private VirtualUser self = null;
 
 	/**
 	 * Henter labyrinten fra RMIServer
@@ -71,25 +70,18 @@ public class Maze extends Applet {
 			maze = bm.getMaze();
 			
 			/*
-			** Finner l�sningene ut av maze - se for�vrig kildekode for VirtualMaze for ytterligere
-			** kommentarer. L�sningen er implementert med backtracking-algoritme
-			*/
-			
-			
-//			Painter pa = new Painter();
-//			pa.setDaemon(true);
-//			pa.start();
-//			
-//			Worker w = new Worker();
-//			w.setDaemon(true);
-//			w.start();
-			
-			LotsOfPlayers pl = new LotsOfPlayers(4);
+			 * Simulerer et antall spillere
+			 */
+			LotsOfPlayers pl = new LotsOfPlayers(18);
 			pl.setDaemon(true);
 			pl.start();
 			
-			while(myPos == null)
-				Thread.sleep(100);
+			/*
+			 * Starter periodisk repaint.
+			 */
+			Painter pa = new Painter();
+			pa.setDaemon(true);
+			pa.start();
 		}
 		catch (RemoteException e) {
 			e.printStackTrace();
@@ -106,9 +98,6 @@ public class Maze extends Applet {
 			 */
 			System.err.println("Not Bound Exception: " + f.getMessage());
 			System.exit(0);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 	
@@ -118,9 +107,9 @@ public class Maze extends Applet {
 		LotsOfPlayers(int c) { n = c; }
 		public void run() {
 			for ( int i = n; i != 0; i--) {
-				Worker b = new Worker();
-				b.setDaemon(true);
-				b.start();
+				Worker w = new Worker();
+				w.setDaemon(true);
+				w.start();
 				try {
 					sleep(750);
 				} catch (InterruptedException e) {
@@ -134,28 +123,14 @@ public class Maze extends Applet {
 		public void run(){
 			try {
 				// Create a new user for this maze.
-				VirtualUser vu = new VirtualUser(maze);
-				PositionInMaze pos = vu.getIterationLoop()[0];
-				int i = bm.join((PosPos)pos);
-				vu.setId(i);
+				VirtualUser vu = new VirtualUser(bm);
 				
-				// The first user is Self
-				if (i == 1) myPos = pos;
+				if (self == null)
+					self = vu;
 				
 				// Move until all moves done.
 				while (true) {
-					if (vu.moves.hasNext()) {
-						PositionInMaze p = vu.moves.next();
-					
-						theirPos = bm.announce(vu.getId(), p);
-						repaint();
-					
-						// The first user is Self
-						if (i == 1) myPos = p;
-					}
-					else {
-						vu.turn();
-					}
+					vu.move();
 					sleep(200);
 				}
 			}
@@ -167,18 +142,18 @@ public class Maze extends Applet {
 	    }
 	}
 	
-//	private class Painter extends Thread {
-//		public void run() {
-//			try {
-//				while(true) {
-//					Thread.sleep(200);
-//			    	repaint();
-//				}
-//			} catch (InterruptedException ie) {
-//				ie.printStackTrace();
-//			}
-//		}
-//	}
+	private class Painter extends Thread {
+		public void run() {
+			try {
+				while(true) {
+					Thread.sleep(200);
+			    	repaint();
+				}
+			} catch (InterruptedException ie) {
+				ie.printStackTrace();
+			}
+		}
+	}
 	
 	//Get a parameter value
 	public String getParameter(String key, String def) {
@@ -217,19 +192,26 @@ public class Maze extends Applet {
 					g.drawLine(x * 10 + 10, y * 10, x * 10 + 10, y * 10 + 10);
 			}
 		
-		if (theirPos != null)
-			for (int i = 0; i < theirPos.length; i++) {
-				PosPos who = theirPos[i];
-				if (myPos.equals(who))
-					drawSelf(g);
-				else
-					drawThem(g, who);
-			}
-		else
+		
+		if (self != null) {
 			drawSelf(g);
+		
+			try {
+				Object[] moves = self.getOthers();
+				for (int i = 0; i < moves.length; i++) {
+					drawThem(g, (PosPos)moves[i]);
+					i++;
+				}
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
 	}
 	
 	private void drawSelf(Graphics g) {
+		PosPos myPos = self.getPos();
 		try {
 			g.setColor(Color.yellow);
 			g.fillOval((myPos.getXpos() * 10) + 2, (myPos.getYpos() * 10) + 2, 7, 7);
