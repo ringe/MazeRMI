@@ -156,6 +156,7 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	@Override
 	public void join(Integer i, User u) throws RemoteException {
 		users.put(i, u);
+		System.out.println(id + users.keys().toString());
 	}
 	
 	/**

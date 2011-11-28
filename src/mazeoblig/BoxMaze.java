@@ -22,6 +22,7 @@ import java.rmi.ConnectException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -184,10 +185,10 @@ public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
 	@Override
 	public int join(User u) throws RemoteException {
 		ArrayList<Integer> rem = new ArrayList<Integer>();
-		Iterator<Integer> it = (Iterator<Integer>) users.keys();
+		Enumeration<Integer> it = users.keys();
 		Integer id = nextId;
-		while (it.hasNext()) {
-			int k = it.next();
+		while (it.hasMoreElements()) {
+			int k = it.nextElement();
 			try {
 				User us = users.get(k);
 				us.join(k, u);

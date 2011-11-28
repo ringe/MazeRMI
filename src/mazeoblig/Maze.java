@@ -72,7 +72,7 @@ public class Maze extends Applet {
 			/*
 			 * Simulerer et antall spillere
 			 */
-			LotsOfPlayers pl = new LotsOfPlayers(18);
+			LotsOfPlayers pl = new LotsOfPlayers(3);
 			pl.setDaemon(true);
 			pl.start();
 			
