@@ -20,9 +20,6 @@ import simulator.*;
  */
 import java.rmi.RemoteException;
 import java.rmi.NotBoundException;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.List;
 
 /**
  * Tegner opp maze i en applet, basert p� definisjon som man finner p� RMIServer
@@ -32,6 +29,7 @@ import java.util.List;
  */
 public class Maze extends Applet {
 
+	private static final long serialVersionUID = 1L;
 	private BoxMazeInterface bm;
 	private Box[][] maze;
 	public static int DIM = 20;
@@ -49,7 +47,6 @@ public class Maze extends Applet {
 	 * Henter labyrinten fra RMIServer
 	 */
 	public void init() {
-		int size = dim;
 		/*
 		 ** Kobler opp mot RMIServer, under forutsetning av at disse
 		 ** kj�rer p� samme maskin. Hvis ikke m� oppkoblingen
@@ -72,7 +69,7 @@ public class Maze extends Applet {
 			/*
 			 * Simulerer et antall spillere
 			 */
-			LotsOfPlayers pl = new LotsOfPlayers(3);
+			LotsOfPlayers pl = new LotsOfPlayers(4);
 			pl.setDaemon(true);
 			pl.start();
 			
@@ -123,7 +120,7 @@ public class Maze extends Applet {
 		public void run(){
 			try {
 				// Create a new user for this maze.
-				VirtualUser vu = new VirtualUser(bm);
+				VirtualUser vu = new VirtualUser(bm, (self == null ? null : Color.white));
 				
 				if (self == null)
 					self = vu;
@@ -194,19 +191,12 @@ public class Maze extends Applet {
 		
 		
 		if (self != null) {
-			drawSelf(g);
-		
 			try {
-				Object[] moves = self.getOthers();
-				for (int i = 0; i < moves.length; i++) {
-					drawThem(g, (PosPos)moves[i]);
-					i++;
-				}
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
+				String[] pos = self.getAllPos();
+				for (int i = 0; i < pos.length; i++)
+					drawThem(g, pos[i]);
+				drawSelf(g);
+			} catch (RemoteException e) {}
 		}
 	}
 	
@@ -221,14 +211,13 @@ public class Maze extends Applet {
 		}
 	}
 	
-	private void drawThem(Graphics g, PosPos who) {
-		try {
-			g.setColor(Color.red);
-			g.fillOval((who.getXpos() * 10) + 2, (who.getYpos() * 10) + 2, 7, 7);
-			g.setColor(Color.black);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
+	private void drawThem(Graphics g, String where) {
+		String[] coord = where.split(",");
+		int x = new Integer(coord[0]);
+		int y = new Integer(coord[1]);
+		g.setColor(Color.red);
+		g.fillOval((x * 10) + 2, (y * 10) + 2, 7, 7);
+		g.setColor(Color.black);
 	}
 }
 

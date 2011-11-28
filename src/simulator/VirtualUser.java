@@ -12,6 +12,7 @@ import mazeoblig.Maze;
 import mazeoblig.RMIServer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -54,18 +55,21 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	public Iterator<PositionInMaze> moves;
 	private BoxMazeInterface boxmaze;
 	private PositionInMaze pos;
-	private Hashtable<Integer,PosPos> positions;
-	private Hashtable<Integer,User> users;
+	private HashMap<Integer,String> positions;
+	private HashMap<Integer,User> users;
+	
+	private Color color = Color.green;
 
 	/**
 	 * Konstrukt�r
 	 * @param bm
 	 * @throws RemoteException 
 	 */
-	public VirtualUser(BoxMazeInterface bm) throws RemoteException {
+	public VirtualUser(BoxMazeInterface bm, Color clr) throws RemoteException {
+		color = setColor(clr);
 		boxmaze = bm;
-		users = new Hashtable<Integer,User>();
-		positions = new Hashtable<Integer,PosPos>();
+		users = new HashMap<Integer,User>();
+		positions = new HashMap<Integer,String>();
 		id = boxmaze.join(this);
 		maze = boxmaze.getMaze();
 		dim = maze[0].length;
@@ -73,16 +77,29 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	}
 	
 	@Override public int getId() { return id; }
-	@Override public PosPos getPos() { return pos; }
+	@Override public PositionInMaze getPos() { return pos; }
 	
-	@Override public Object[] getOthers() throws RemoteException {
-		Object[] o = users.values().toArray();
-		ArrayList<PosPos> pos = new ArrayList<PosPos>();
-		for (int i = 0; i < o.length; i++) {
-			PosPos p = ((User) o[i]).getPos();
-			if (p!=null) pos.add(p);
-		}
-		return pos.toArray();
+	@Override public String[] getAllPos() throws RemoteException {
+		String[] usr = (String[])positions.values().toArray(new String[positions.values().size()]);
+		return usr;
+	}
+	
+	/**
+	 * Set Color for this VirtualUser
+	 * @param given
+	 * @return
+	 */
+	public Color setColor (Color given) {
+		if (given != null)
+			return given;
+		Random generator = new Random();
+		Color[] array = {Color.black, Color.blue, Color.red, Color.pink, Color.yellow, Color.green, Color.orange}; 
+        int rnd = generator.nextInt(array.length);
+        return array[rnd];
+    }
+	
+	public Color getColor () {
+		return color != null ? color : Color.white;
 	}
 	
 	/**
@@ -156,7 +173,7 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	@Override
 	public void join(Integer i, User u) throws RemoteException {
 		users.put(i, u);
-		System.out.println(id + users.keys().toString());
+		System.out.println(id + " knows about "+ i);
 	}
 	
 	/**
@@ -183,10 +200,10 @@ public class VirtualUser extends UnicastRemoteObject implements User {
      */
 	@Override
 	public void announce() throws RemoteException {
-		Object[] all = users.values().toArray();
-		for (int i = 0; i < all.length; i++ ) {
-			User u = (User) all[i];
-			u.tellPos(id, pos);
+		User[] usr = (User[])users.values().toArray(new User[users.values().size()]);
+		for (int i = 0; i < usr.length; i++ ) {
+			System.out.println(id + " told " + i);
+			usr[i].tellPos(id, pos.getXpos() + "," + pos.getYpos());
 		}
 	}
 	
@@ -194,7 +211,8 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	 * Receive positionsfrom other users
 	 */
 	@Override
-	public void tellPos(int i, PosPos p) throws RemoteException {
+	public void tellPos(int i, String p) throws RemoteException {
+		System.out.println(id + " heard " + p + " from " + i);
 		positions.put(i, p);
 	}
 	

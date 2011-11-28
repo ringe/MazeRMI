@@ -29,8 +29,6 @@ public class RMIServer
   public static int    PORT = DEFAULT_PORT;
   private static String HOST_NAME;
   private static InetAddress myAdress = null;
-  private static RMIServer rmi;
-
   private static BoxMaze maze;
   public static String MazeName = "Maze";
   /**
@@ -99,7 +97,7 @@ public class RMIServer
   public static String getHostIP() { return myAdress.getHostAddress(); }
 
    public static void main ( String[] args ) throws Exception {
-      try { rmi = new RMIServer(); }
+      try { new RMIServer(); }
       catch ( java.rmi.UnknownHostException uhe ) {
          System.out.println( "Maskinnavnet, " + HOST_NAME + " er ikke korrekt." );
       }
@@ -122,8 +120,8 @@ public class RMIServer
          System.out.println( "Already Bound" );
          System.out.println( "" + abe );
       }
-      java.rmi.registry.Registry r = java.rmi.registry.LocateRegistry.getRegistry(HOST_NAME, PORT);
-      String [] s = r.list();
+//      java.rmi.registry.Registry r = java.rmi.registry.LocateRegistry.getRegistry(HOST_NAME, PORT);
+//      String [] s = r.list();
       System.out.println("RMIRegistry on " + HOST_NAME + ":" + PORT + "\n----------------------------");
    }  // main
 }  // class RMIServer

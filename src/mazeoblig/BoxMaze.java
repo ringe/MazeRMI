@@ -23,9 +23,11 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,7 +37,7 @@ import simulator.User;
 public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
 {
 	private static final long serialVersionUID = -8728714919003472639L;
-	private Hashtable<Integer,User> users;
+	private HashMap<Integer,User> users;
 	private int nextId = 1;
     private int maze[][];
     protected Box boxmaze[][];
@@ -49,13 +51,13 @@ public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
      */
     public BoxMaze() throws RemoteException {
         init(size);
-        users = new Hashtable<Integer,User>();
+        users = new HashMap<Integer,User>();
     }
 
     public BoxMaze(int newSize) throws RemoteException {
         size = newSize;
         init(size);
-        users = new Hashtable<Integer,User>();
+        users = new HashMap<Integer,User>();
     }
     
     /**
@@ -185,22 +187,25 @@ public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
 	@Override
 	public int join(User u) throws RemoteException {
 		ArrayList<Integer> rem = new ArrayList<Integer>();
-		Enumeration<Integer> it = users.keys();
-		Integer id = nextId;
-		while (it.hasMoreElements()) {
-			int k = it.nextElement();
+		User[] usr = (User[])users.values().toArray(new User[users.values().size()]);
+		users.put(nextId++, u);
+		
+		for (int i = 0; i < usr.length; i++) {
 			try {
-				User us = users.get(k);
-				us.join(k, u);
+				usr[i].join(nextId -1, users.get(nextId -1));
+				int rid = usr[i].getId();
+				if (rid != (nextId -1))
+					u.join(rid, usr[i]);
 			} catch (ConnectException ce) {
-				rem.add(k);
+				rem.add(i);
 			}
 		}
+		
 		for (int i=0; i<rem.size(); i++)
 			users.remove(rem.get(i));
-		users.put(id, u);
-		nextId++;
-		return id;
+		
+		System.out.println((nextId - 1) + " added.");
+		return nextId - 1;
 	}
 
 	@Override

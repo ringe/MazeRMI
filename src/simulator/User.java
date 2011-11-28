@@ -12,11 +12,11 @@ import java.rmi.RemoteException;
  */
 public interface User extends Remote {
 	public int getId() throws RemoteException;
-	public PosPos getPos() throws RemoteException;
-	public Object[] getOthers() throws RemoteException;
+	public PositionInMaze getPos() throws RemoteException;
+	public String[] getAllPos() throws RemoteException;
 	public void join(Integer i, User u) throws RemoteException;
 	public void drop(Integer i) throws RemoteException;
 	public void announce() throws RemoteException;
-	public void tellPos(int id, PosPos pos) throws RemoteException;
+	public void tellPos(int id, String pos) throws RemoteException;
 	public void leave() throws RemoteException;
 }
