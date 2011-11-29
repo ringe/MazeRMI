@@ -41,9 +41,9 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	private Box[][] maze;
 	private int dim;
 
-	static int xp;
-	static int yp;
-	static boolean found = false;
+	 int xp;
+	 int yp;
+	 boolean found = false;
 
 	private int id;
 	private boolean trackback = true;
@@ -114,6 +114,7 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 		xp = rand.nextInt(dim - 1) + 1;
 		yp = rand.nextInt(dim - 1) + 1;
 
+		System.out.println(xp + "::" + yp);
 		// L�ser veien ut av labyrinten basert p� tilfeldig inngang ...
 		makeFirstIteration();
 		// og deretter l�ses labyrinten basert p� inngang fra starten 
@@ -127,12 +128,14 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	 * Perform the next move
 	 * @throws RemoteException
 	 */
-	public void move() throws RemoteException {
+	public boolean move() throws RemoteException {
 		if (moves.hasNext()) {
 			pos = moves.next();
 			announce();
+			return true;
 		}
 		else turn();
+		return true;
 	}
 	
 	/**
@@ -173,7 +176,7 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	@Override
 	public void join(Integer i, User u) throws RemoteException {
 		users.put(i, u);
-		System.out.println(id + " knows about "+ i);
+//		System.out.println(id + " knows about "+ i);
 	}
 	
 	/**
@@ -202,7 +205,7 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	public void announce() throws RemoteException {
 		User[] usr = (User[])users.values().toArray(new User[users.values().size()]);
 		for (int i = 0; i < usr.length; i++ ) {
-			System.out.println(id + " told " + i);
+//			System.out.println(id + " told " + i);
 			usr[i].tellPos(id, pos.getXpos() + "," + pos.getYpos());
 		}
 	}
@@ -212,7 +215,7 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	 */
 	@Override
 	public void tellPos(int i, String p) throws RemoteException {
-		System.out.println(id + " heard " + p + " from " + i);
+//		System.out.println(id + " heard " + p + " from " + i);
 		positions.put(i, p);
 	}
 	
@@ -222,10 +225,20 @@ public class VirtualUser extends UnicastRemoteObject implements User {
 	 */
 	private void solveMaze() throws RemoteException {
 		found = false;
+		int X = xp; int Y = yp;
 		// Siden posisjonen er tilfeldig valgt risikerer man at man kj�rer i en br�nn
 		// Av denne grunn .... det er noe galt med kallet under
-		myWay.push(new PositionInMaze(xp, yp));
-		backtrack(maze[xp][yp], maze[1][0]);
+		try {
+			System.out.println(xp + "--" + yp);
+			System.out.flush();
+			myWay.push(new PositionInMaze(xp, yp));
+			Box a[] = maze[xp];
+			Box aa = a[yp];
+			Box b = maze[1][0];
+			backtrack(aa, b);
+		} catch (ArrayIndexOutOfBoundsException e) { 
+			e.printStackTrace();
+		}
 	}
 
 	/**

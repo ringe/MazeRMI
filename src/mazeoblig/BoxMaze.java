@@ -41,7 +41,7 @@ public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
 	private int nextId = 1;
     private int maze[][];
     protected Box boxmaze[][];
-    private int size = 50;
+    private int size = 60;
     
     
     /**
@@ -185,7 +185,7 @@ public class BoxMaze extends UnicastRemoteObject implements BoxMazeInterface
 	 * Join the Maze
 	 */
 	@Override
-	public int join(User u) throws RemoteException {
+	synchronized public int join(User u) throws RemoteException {
 		ArrayList<Integer> rem = new ArrayList<Integer>();
 		User[] usr = (User[])users.values().toArray(new User[users.values().size()]);
 		users.put(nextId++, u);

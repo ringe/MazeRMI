@@ -32,7 +32,7 @@ public class Maze extends Applet {
 	private static final long serialVersionUID = 1L;
 	private BoxMazeInterface bm;
 	private Box[][] maze;
-	public static int DIM = 20;
+	public static int DIM = 60;
 	private int dim = DIM;
 
 	static int xp;
@@ -69,7 +69,7 @@ public class Maze extends Applet {
 			/*
 			 * Simulerer et antall spillere
 			 */
-			LotsOfPlayers pl = new LotsOfPlayers(4);
+			LotsOfPlayers pl = new LotsOfPlayers(100);
 			pl.setDaemon(true);
 			pl.start();
 			
@@ -108,7 +108,7 @@ public class Maze extends Applet {
 				w.setDaemon(true);
 				w.start();
 				try {
-					sleep(750);
+					sleep(150);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -127,8 +127,9 @@ public class Maze extends Applet {
 				
 				// Move until all moves done.
 				while (true) {
-					vu.move();
-					sleep(200);
+					if (!vu.move())
+						break;
+					sleep(150);
 				}
 			}
 			catch (InterruptedException ex) {
@@ -143,7 +144,7 @@ public class Maze extends Applet {
 		public void run() {
 			try {
 				while(true) {
-					Thread.sleep(200);
+					Thread.sleep(150);
 			    	repaint();
 				}
 			} catch (InterruptedException ie) {
@@ -200,15 +201,11 @@ public class Maze extends Applet {
 		}
 	}
 	
-	private void drawSelf(Graphics g) {
+	private void drawSelf(Graphics g) throws RemoteException {
 		PosPos myPos = self.getPos();
-		try {
-			g.setColor(Color.yellow);
-			g.fillOval((myPos.getXpos() * 10) + 2, (myPos.getYpos() * 10) + 2, 7, 7);
-			g.setColor(Color.black);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
+		g.setColor(Color.yellow);
+		g.fillOval((myPos.getXpos() * 10) + 2, (myPos.getYpos() * 10) + 2, 7, 7);
+		g.setColor(Color.black);
 	}
 	
 	private void drawThem(Graphics g, String where) {
